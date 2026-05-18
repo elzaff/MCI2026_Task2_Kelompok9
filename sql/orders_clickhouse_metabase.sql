@@ -116,11 +116,11 @@ LIMIT 20;
    --------------------------------------------------------------------- */
 
 SELECT
-    countDistinct(order_id) AS total_orders,
-    countDistinct(user_id) AS total_users,
+    count(DISTINCT order_id) AS total_orders,
+    count(DISTINCT user_id) AS total_users,
     count() AS total_order_lines,
-    countDistinct(product_id) AS total_unique_products,
-    round(count() / countDistinct(order_id), 2) AS avg_items_per_order,
+    count(DISTINCT product_id) AS total_unique_products,
+    round(count() / count(DISTINCT order_id), 2) AS avg_items_per_order,
     round(avg(coalesce(reordered, 0)) * 100, 2) AS reorder_rate_percent
 FROM analytics.orders_order_items
 WHERE product_id IS NOT NULL;
@@ -132,7 +132,7 @@ WHERE product_id IS NOT NULL;
    Metric: total_orders.
    --------------------------------------------------------------------- */
 
-SELECT countDistinct(order_id) AS total_orders
+SELECT count(DISTINCT order_id) AS total_orders
 FROM analytics.orders_order_items
 WHERE product_id IS NOT NULL;
 
@@ -143,7 +143,7 @@ WHERE product_id IS NOT NULL;
    Metric: total_users.
    --------------------------------------------------------------------- */
 
-SELECT countDistinct(user_id) AS total_users
+SELECT count(DISTINCT user_id) AS total_users
 FROM analytics.orders_order_items
 WHERE product_id IS NOT NULL;
 
@@ -165,7 +165,7 @@ WHERE product_id IS NOT NULL;
    Metric: total_unique_products.
    --------------------------------------------------------------------- */
 
-SELECT countDistinct(product_id) AS total_unique_products
+SELECT count(DISTINCT product_id) AS total_unique_products
 FROM analytics.orders_order_items
 WHERE product_id IS NOT NULL;
 
@@ -176,7 +176,7 @@ WHERE product_id IS NOT NULL;
    Metric: avg_items_per_order.
    --------------------------------------------------------------------- */
 
-SELECT round(count() / countDistinct(order_id), 2) AS avg_items_per_order
+SELECT round(count() / count(DISTINCT order_id), 2) AS avg_items_per_order
 FROM analytics.orders_order_items
 WHERE product_id IS NOT NULL;
 
@@ -286,22 +286,29 @@ ORDER BY total_order_lines DESC;
    Insight: jam tersibuk untuk order, berguna untuk strategi promo/operasional.
    --------------------------------------------------------------------- */
 
+WITH hourly AS (
+    SELECT
+        order_hour_of_day,
+        sum(total_orders) AS orders_count,
+        sum(total_order_lines) AS order_lines_count
+    FROM analytics.orders_hourly_summary
+    GROUP BY order_hour_of_day
+)
 SELECT
     order_hour_of_day,
-    sum(total_orders) AS total_orders,
-    sum(total_order_lines) AS total_order_lines,
-    round(sum(total_order_lines) / sum(total_orders), 2) AS avg_items_per_order
-FROM analytics.orders_hourly_summary
-GROUP BY order_hour_of_day
+    orders_count AS total_orders,
+    order_lines_count AS total_order_lines,
+    round(order_lines_count / orders_count, 2) AS avg_items_per_order
+FROM hourly
 ORDER BY order_hour_of_day;
 
-
 /* ---------------------------------------------------------------------
-   Q7 - Weekly Order Pivot
-   Metabase visualization: Pivot Table
-   Rows: day_name
-   Columns: order_hour_of_day
-   Metrics/values: total_orders, total_order_lines, avg_items_per_order.
+   Q7 - Weekly Order by Day and Hour
+   Metabase visualization: Table or Bar
+   Note: Pivot Table di Metabase hanya didukung untuk question yang dibuat
+   melalui Query Builder, bukan Native SQL.
+   Table columns: day_name, order_hour_of_day.
+   Metrics: total_orders, total_order_lines, avg_items_per_order.
    Insight: kombinasi hari dan jam dengan demand tertinggi.
    --------------------------------------------------------------------- */
 
@@ -385,7 +392,7 @@ SELECT
         order_number BETWEEN 21 AND 50, '05. Order 21-50',
         '06. Order 51+'
     ) AS order_number_bucket,
-    countDistinct(order_id) AS total_orders,
+    count(DISTINCT order_id) AS total_orders,
     count() AS total_order_lines,
     round(avg(coalesce(reordered, 0)) * 100, 2) AS reorder_rate_percent
 FROM analytics.orders_order_items
@@ -413,7 +420,7 @@ SELECT
         days_since_prior_order BETWEEN 15 AND 30, '15-30 Days',
         '30+ Days'
     ) AS days_since_prior_order_bucket,
-    countDistinct(order_id) AS total_orders,
+    count(DISTINCT order_id) AS total_orders,
     count() AS total_order_lines,
     round(avg(coalesce(reordered, 0)) * 100, 2) AS reorder_rate_percent
 FROM analytics.orders_order_items
@@ -439,8 +446,8 @@ SELECT
     department,
     aisle,
     count() AS total_order_lines,
-    countDistinct(order_id) AS unique_orders,
-    countDistinct(product_id) AS unique_products,
+    count(DISTINCT order_id) AS unique_orders,
+    count(DISTINCT product_id) AS unique_products,
     round(avg(coalesce(reordered, 0)) * 100, 2) AS reorder_rate_percent
 FROM analytics.orders_order_items
 WHERE product_id IS NOT NULL
@@ -481,11 +488,11 @@ LIMIT 15;
 
 SELECT
     user_id,
-    countDistinct(order_id) AS total_orders,
+    count(DISTINCT order_id) AS total_orders,
     count() AS total_order_lines,
-    countDistinct(product_id) AS unique_products,
+    count(DISTINCT product_id) AS unique_products,
     round(avg(coalesce(reordered, 0)) * 100, 2) AS reorder_rate_percent,
-    round(count() / countDistinct(order_id), 2) AS avg_items_per_order
+    round(count() / count(DISTINCT order_id), 2) AS avg_items_per_order
 FROM analytics.orders_order_items
 WHERE product_id IS NOT NULL
 GROUP BY user_id
@@ -504,7 +511,7 @@ LIMIT 20;
 SELECT
     max(ingested_at) AS latest_ingested_at,
     min(ingested_at) AS earliest_ingested_at,
-    countDistinct(order_id) AS total_orders_in_current_load,
+    count(DISTINCT order_id) AS total_orders_in_current_load,
     count() AS total_order_lines_in_current_load
 FROM analytics.orders_order_items;
 
@@ -573,3 +580,32 @@ SELECT
     basket_size
 FROM basket
 ORDER BY day_name, basket_size;
+
+/* ---------------------------------------------------------------------
+Q19 - Peak Order Hours Trend
+Metabase visualization: Line Chart
+X-Axis: order_hour_of_day
+Y-Axis: total_orders
+Insight: Mengetahui jam-jam sibuk pelanggan melakukan checkout.
+--------------------------------------------------------------------- */
+SELECT 
+    order_hour_of_day,
+    SUM(total_orders) AS total_orders
+FROM analytics.orders_hourly_summary
+GROUP BY order_hour_of_day
+ORDER BY order_hour_of_day;
+
+/* ---------------------------------------------------------------------
+Q20 - Top 10 Most Ordered Products
+Metabase visualization: Row Chart / Bar Chart
+Category: product_name
+Value: total_order_lines
+Insight: Identifikasi produk dengan volume penjualan tertinggi.
+--------------------------------------------------------------------- */
+SELECT 
+    product_name,
+    department,
+    total_order_lines
+FROM analytics.orders_product_summary
+ORDER BY total_order_lines DESC
+LIMIT 10;
