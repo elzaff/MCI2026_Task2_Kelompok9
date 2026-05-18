@@ -185,7 +185,7 @@ Gambar berikut terlihat log dari fetch_recent_changes. Terlihat pesan yang dicet
 Masuk ke database ClickHouse
 
 ```bash
-docker exec -it wikipedia-realtime-pipeline-clickhouse-server-1 clickhouse-client --user admin --password rahasia
+docker exec -it mci2026_task2_kelompok9-clickhouse-server-1 clickhouse-client --user admin --password rahasia
 ```
 
 Masuki database dan jalankan query untuk melihat data
