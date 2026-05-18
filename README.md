@@ -16,9 +16,9 @@ Data dari API berbentuk nested JSON. Setiap order memiliki atribut utama seperti
 
 > Catatan: pipeline Wikipedia lama tetap ada di folder `dags/scripts_wikped`, tetapi fokus tugas ini adalah pipeline Orders.
 
-## Tujuan Project
+## Tahapan Project
 
-Project ini mengerjakan tahapan berikut:
+
 
 1. Merancang DAG Apache Airflow untuk pipeline Orders.
 2. Mengambil data nested JSON dari API Orders.
@@ -79,8 +79,6 @@ MCI2026_Task2_Kelompok9/
 |       |-- process_wikipedia_spark.py
 |       `-- wikipedia_pipeline.py
 |-- data_lake/
-|-- docs/
-|   `-- metabase_dashboard_plan.md
 |-- sql/
 |   `-- orders_clickhouse_metabase.sql
 |-- docker-compose.yml
@@ -97,7 +95,7 @@ MCI2026_Task2_Kelompok9/
 | `dags/scripts_orders/fetch_orders.py` | Mengambil data dari Orders API, flatten nested JSON, dan menyimpan hasilnya sebagai Parquet. |
 | `dags/scripts_orders/process_orders.py` | Membaca Parquet dengan PySpark, membuat tabel ClickHouse, mengisi data, dan membersihkan Parquet yang sudah diproses. |
 | `sql/orders_clickhouse_metabase.sql` | Berisi DDL ClickHouse dan query untuk Metabase Questions. |
-| `docs/metabase_dashboard_plan.md` | Rencana visualisasi, axis, metrics, dan layout dashboard Metabase. |
+
 
 ## Menjalankan Project
 
@@ -119,7 +117,7 @@ Menjalankan semua service:
 docker compose up -d
 ```
 
-Akses service:
+Akses:
 
 | Service | URL | Username | Password |
 |---------|-----|----------|----------|
@@ -178,7 +176,7 @@ DDL lengkap dan query Metabase tersedia di:
 sql/orders_clickhouse_metabase.sql
 ```
 
-Pembuatan tabel dilakukan otomatis di dalam task `process_orders_spark` menggunakan `CREATE DATABASE IF NOT EXISTS` dan `CREATE TABLE IF NOT EXISTS`. File SQL tetap disediakan sebagai dokumentasi schema dan referensi query.
+Pembuatan tabel dilakukan otomatis di dalam task `process_orders_spark` menggunakan `CREATE DATABASE IF NOT EXISTS` dan `CREATE TABLE IF NOT EXISTS`. SQL DDL tetap disediakan sebagai dokumentasi schema dan referensi query.
 
 ## Validasi Data ClickHouse
 
@@ -210,7 +208,7 @@ SELECT 'orders_hourly_summary', count()
 FROM analytics.orders_hourly_summary;
 ```
 
-Hasil validasi data saat README ini ditulis:
+Hasil validasi data saat ini:
 
 | Tabel | Jumlah Baris |
 |-------|--------------|
@@ -236,14 +234,12 @@ Hasil validasi data saat README ini ditulis:
 | Username | `admin` |
 | Password | `rahasia` |
 
-Setelah koneksi berhasil, buat Questions menggunakan query pada file:
+
+## Metabase Questions
 
 ```text
 sql/orders_clickhouse_metabase.sql
 ```
-
-## Metabase Questions
-
 Daftar Questions utama yang disiapkan untuk dashboard:
 
 | ID | Nama Question | Visualisasi | Axis / Dimension | Metrics |
@@ -259,7 +255,7 @@ Daftar Questions utama yang disiapkan untuk dashboard:
 | Q4 | Department Contribution | Pie | `department` | `total_order_lines` |
 | Q5 | Department Quality Matrix | Scatter | X: `total_order_lines` | Y: `reorder_rate_percent`, bubble: `unique_products` |
 | Q6 | Order Traffic by Hour | Line / Area | `order_hour_of_day` | `total_orders`, `total_order_lines` |
-| Q7 | Weekly Order by Day and Hour | Table / Bar | `day_name`, `order_hour_of_day` | `total_orders`, `total_order_lines`, `avg_items_per_order` |
+| Q7 | Weekly Order by Day and Hour | Pivot Table / Bar | `day_name`, `order_hour_of_day` | `total_orders`, `total_order_lines`, `avg_items_per_order` |
 | Q8 | Basket Size Distribution | Bar | `basket_size` | `total_orders` |
 | Q9 | Reorder vs First-Time | Pie / Bar | `product_line_type` | `total_order_lines`, `percentage` |
 | Q10 | Reorder Rate by Order Number | Line | `order_number_bucket` | `reorder_rate_percent`, `total_orders` |
@@ -275,11 +271,9 @@ Daftar Questions utama yang disiapkan untuk dashboard:
 
 > Catatan Metabase: `Pivot Table` hanya tersedia untuk Questions yang dibuat menggunakan Query Builder, bukan Native SQL. Karena itu Q7 dari SQL direkomendasikan sebagai `Table` atau `Bar`.
 
-## Dashboard Design dan Insight
+## Dashboard dan Insight
 
-Dashboard disusun menjadi beberapa row agar alur analisis mudah dibaca: mulai dari ringkasan bisnis, performa produk, kategori, waktu order, sampai perilaku basket dan reorder.
-
-Angka insight di bawah berasal dari snapshot ClickHouse terbaru pada 2026-05-18 15:40:23. Nilainya dapat berubah ketika DAG dijalankan ulang karena API Orders dapat menghasilkan batch data yang berbeda.
+Dashboard disusun menjadi beberapa row agar alur analisis mudah dibaca. Angka insight di bawah berasal dari snapshot ClickHouse terbaru pada 2026-05-18 15:40:23. Nilainya dapat berubah ketika DAG dijalankan ulang karena API Orders dapat menghasilkan batch data yang berbeda.
 
 ### Row 1 - Executive Overview
 
@@ -294,7 +288,7 @@ Visualisasi:
 - `Number`: Average Items per Order
 - `Gauge`: Reorder Rate
 
-Fungsi row:
+Fungsi :
 
 Row ini berfungsi sebagai executive snapshot. Pengguna bisa langsung melihat skala batch, jumlah user yang masuk, dan seberapa besar porsi repeat purchase tanpa membaca grafik detail terlebih dahulu.
 
@@ -324,11 +318,11 @@ Query referensi: Q2, Q3, Q13, Q20.
 Visualisasi:
 
 - `Bar`: Top Products by Order Lines
-- `Bar` atau `Table`: Most Loyal Products by Reorder Rate
+- `Bar` : Most Loyal Products by Reorder Rate
 - `Bar`: Cart Position Analysis
-- `Row` atau `Bar`: Top 10 Most Ordered Products
+- `Row` : Top 10 Most Ordered Products
 
-Fungsi row:
+Fungsi :
 
 Row ini digunakan untuk membedakan produk yang paling sering muncul di basket dengan produk yang paling kuat repeat purchase-nya. Jadi, kita bisa melihat mana produk populer, mana produk loyal, dan mana yang biasanya masuk cart lebih awal.
 
@@ -370,10 +364,10 @@ Visualisasi:
 
 - `Pie`: Department Contribution
 - `Scatter`: Department Quality Matrix
-- `Table` atau `Bar`: Top Aisles inside Top Departments
+- `Bar`: Top Aisles inside Top Departments
 - `Sankey`: Department to Aisle Flow
 
-Fungsi row:
+Fungsi :
 
 Row ini digunakan untuk melihat kontribusi kategori besar dan drill-down ke aisle yang benar-benar mendorong volume. Department memberi gambaran level tinggi, sedangkan aisle membantu melihat detail perilaku belanja.
 
@@ -413,11 +407,11 @@ Query referensi: Q6, Q7, Q19.
 
 Visualisasi:
 
-- `Line` atau `Area`: Order Traffic by Hour
-- `Table` atau `Bar`: Weekly Order by Day and Hour
+- `Area`: Order Traffic by Hour
+- `Pivot Table` : Weekly Order by Day and Hour
 - `Line`: Peak Order Hours Trend
 
-Fungsi row:
+Fungsi :
 
 Row ini digunakan untuk melihat pola waktu order. Informasi ini berguna untuk mengetahui jam sibuk, hari dengan traffic tertinggi, dan slot waktu yang paling padat untuk promo atau operasional.
 
@@ -460,12 +454,12 @@ Query referensi: Q8, Q9, Q10, Q11, Q18.
 Visualisasi:
 
 - `Bar`: Basket Size Distribution
-- `Pie` atau `Bar`: Reorder vs First-Time Product Lines
+- `Pie` : Reorder vs First-Time Product Lines
 - `Line`: Reorder Rate by Order Number Bucket
 - `Bar`: Days Since Prior Order Distribution
 - `Box Plot`: Basket Size by Day Distribution
 
-Fungsi row:
+Fungsi :
 
 Row ini digunakan untuk memahami perilaku belanja pelanggan: seberapa besar keranjang belanja, berapa banyak produk yang dibeli ulang, bagaimana reorder berubah seiring frekuensi order pelanggan, dan bagaimana spread basket berbeda antar hari.
 
@@ -520,7 +514,9 @@ Screenshot:
 
 ![Row 5 Basket and Reorder Behavior](img/row5.png)
 
-### Footer - Data Freshness
+### Footer - Last Data Ingested
+
+
 
 Query referensi: Q15.
 
@@ -530,7 +526,7 @@ Visualisasi:
 
 Fungsi row:
 
-Bagian ini digunakan untuk validasi bahwa dashboard membaca snapshot terbaru dari pipeline, bukan data lama yang belum di-refresh.
+Bagian ini digunakan untuk melihat waktu snapshot terakhir dari pipeline.
 
 Hasil data saat ini:
 
@@ -541,7 +537,8 @@ Hasil data saat ini:
 | Total Orders in Current Load | 100 |
 | Total Order Lines in Current Load | 1003 |
 
-Insight:
 
-Seluruh row pada batch ini berasal dari timestamp ingest yang sama, jadi dashboard sedang membaca satu snapshot pipeline yang konsisten. Karena tabel agregat ditulis ulang dengan truncate-insert, angka yang tampil di Metabase akan selalu mengikuti run DAG terbaru.
+```text
+ bismillah jadi admin mci
+ ```
 
